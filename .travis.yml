@@ -1,47 +1,56 @@
-language: c
-cache: ccache
-compiler: gcc
-sudo: false
+language: android
+android:
+  components:
+    - platform-tools
+    - build-tools-21.1.1
+    - android-19
+    - extra-android-support
+
+install: ant
+
+
 addons:
   apt:
     packages:
-      - cmake
-      - mingw-w64-i686-dev
-      - binutils-mingw-w64-i686
-      - gcc-mingw-w64-i686
-      - g++-mingw-w64-i686
-      - p7zip-full
-      - gcc-multilib
-      - g++-multilib
-      - libx11-dev:i386
-      - libxext-dev:i386
-      - x11-utils
-      - libgl1-mesa-dev
-      - libasound-dev
-      - zlib1g:i386
-      - libstdc++6:i386
-git:
-  depth: 50
-  submodules: true
-jdk:
-    - oraclejdk8
-os:
-    - linux
-    - osx
-  
-before_script:
-    - sh scripts/travis_${TRAVIS_OS_NAME}_deps.sh
-    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export ANDROID_HOME=$PWD/android-sdk-linux; fi
-    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export PATH=${PATH}:${ANDROID_HOME}/tools:${ANDROID_HOME}/platform-tools:$PWD/android-ndk; fi
-    - sh scripts/travis_common_deps.sh
+      - ant
+jdk: oraclejdk8
+
+notifications:
+  email: false
+
+before_install:
+  - wget http://dl.google.com/android/ndk/android-ndk-r10e-linux-x86_64.bin > /dev/null 2>/dev/null
+  - chmod +x android-ndk-r10e-linux-x86_64.bin && ./android-ndk-r10e-linux-x86_64.bin > /dev/null
+  - mv android-ndk-r10e android-ndk
+  - export PATH=`pwd`/android-ndk:`pwd`/android-sdk-linux/tools:`pwd`/android-sdk-linux/platform-tools:$PATH
+  - git submodule update --init --recursive
 script:
-    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sh scripts/build_android_engine.sh; fi
-    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sh scripts/build_mingw_engine.sh; fi
-    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sh scripts/build_portable_linux_engine.sh; fi
-    - if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then sh scripts/build_osx_engine.sh; fi
+  - cp debug.keystore ~/.android/debug.keystore
+  - sh gen-version.sh travis build
+  - sh gen-config.sh test
+  - python2 makepak.py xash-extras assets/extras.pak
+  - ndk-build NDK_TOOLCHAIN_VERSION=4.8 -j2 APP_CFLAGS="-w" APP_ABI="armeabi-v7a-hard"
+  - ant debug -Dtest.version=1
+  - cp bin/xashdroid-debug.apk xashdroid-armv7.apk
+  - ndk-build NDK_TOOLCHAIN_VERSION=4.8 clean
+  - ndk-build NDK_TOOLCHAIN_VERSION=4.8 -j2 APP_CFLAGS="-w" APP_ABI="armeabi-v7a-hard" CFLAGS_OPT_ARM="-mthumb -mfpu=neon-vfpv4 -mcpu=cortex-a15 -ffast-math -pipe -mvectorize-with-neon-quad -DVECTORIZE_SINCOS -fPIC -DHAVE_EFFICIENT_UNALIGNED_ACCESS"
+  - ant debug -Dtest.version=1
+  - cp bin/xashdroid-debug.apk xashdroid-armv7-cortex-a7-a15.apk
+  - ndk-build NDK_TOOLCHAIN_VERSION=4.8 -j2 APP_CFLAGS="-w" APP_ABI="armeabi"
+  - ant debug -Dtest.version=1
+  - cp bin/xashdroid-debug.apk xashdroid-armv6.apk
+  - ndk-build NDK_TOOLCHAIN_VERSION=4.8 -j2 APP_CFLAGS="-w" APP_ABI="x86"
+  - ant debug -Dtest.version=1
+  - cp bin/xashdroid-debug.apk xashdroid-x86.apk
+  - ndk-build NDK_TOOLCHAIN_VERSION=4.8 clean
+  - ndk-build NDK_TOOLCHAIN_VERSION=4.8 -j2 APP_CFLAGS="-w" APP_ABI="armeabi-v7a-hard" CFLAGS_OPT_ARM="-mthumb -mfpu=vfpv3-d16 -mcpu=cortex-a9 -pipe -fPIC"
+  - ant debug -Dtest.version=1
+  - cp bin/xashdroid-debug.apk xashdroid-armv7-tegra2.apk
+  - ndk-build NDK_TOOLCHAIN_VERSION=4.8 clean
+  - ndk-build NDK_TOOLCHAIN_VERSION=4.8 -j2 APP_CFLAGS="-w" APP_ABI="armeabi" CFLAGS_OPT_ARMv5="-marm -march=armv5te -msoft-float -fPIC"
+  - ant debug -Dtest.version=1
+  - cp bin/xashdroid-debug.apk xashdroid-armv5.apk
+
 after_script:
-    - cd ${TRAVIS_BUILD_DIR}
-    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ccache --show-stats > ccache_stats.log; fi
-    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sh scripts/travis-deploy.sh travis xash3d-mingw.7z xash3d-linux.7z xash3d-generic.apk android-debug-symbols.txz ccache_stats.log; fi
-    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sh scripts/travis-upload.sh xash3d-mingw.7z xash3d-linux.7z xash3d-generic.apk; fi
-    - if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then sh scripts/travis-deploy.sh z_apple xash3d-osx.tar.bz2; fi
+  - sh travis-upload.sh *.apk
+  - sh travis-deploy.sh android-optimized *.apk
