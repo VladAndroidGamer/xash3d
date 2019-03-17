@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd $TRAVIS_BUILD_DIR/xash3d-android-project
+cd $TRAVIS_BUILD_DIR/xash3d
 sh gen-version.sh travis build
 sh gen-config.sh test
 python2 makepak.py xash-extras assets/extras.pak
