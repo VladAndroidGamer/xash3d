@@ -11,7 +11,7 @@ else
  git init
  git config user.name FWGS-deployer
  git config user.email FWGS-deployer@users.noreply.github.com
- git remote add travis-deploy-public https://FWGS-deployer:${GH_TOKEN}@github.com/FWGS/xash3d-deploy.git
+ git remote add travis-deploy-public https://FWGS-deployer:${GH_TOKEN}@github.com/VladAndroidGamer/xash3d-deploy.git
  echo \# $TRAVIS_BRANCH branch autobuilds from $SOURCE_NAME >> README.md
  echo >> README.md
  echo Short changelog: >> README.md
@@ -20,7 +20,7 @@ else
 .. )| cut -d ' ' -f 1-3,5-100 >> README.md
  echo \`\`\` >> README.md
  echo >> README.md
- echo [Code on GitHub]\(https://github.com/FWGS/xash3d/tree/$TRAVIS_COMMIT\) >> README.md
+ echo [Code on GitHub]\(https://github.com/VladAndroidGamer/xash3d/tree/$TRAVIS_COMMIT\) >> README.md
  echo >> README.md
  echo [Full changelog for this build]\(https://github.com/FWGS/xash3d/commits/$TRAVIS_COMMIT\) >> README.md
  echo >> README.md
